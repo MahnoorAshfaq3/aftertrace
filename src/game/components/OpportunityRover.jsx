@@ -1,0 +1,49 @@
+import { Suspense, useMemo } from 'react'
+import { useGLTF } from '@react-three/drei'
+import * as THREE from 'three'
+import AssetBoundary from './AssetBoundary'
+
+export const ROVER_URL = '/models/rovers/opportunity.glb'
+const DRACO = '/draco/' // copied here by `npm install` (scripts/copy-draco.mjs)
+
+function RoverModel({ size }) {
+  const { scene } = useGLTF(ROVER_URL, DRACO)
+  const model = useMemo(() => {
+    const obj = scene.clone(true)
+    obj.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
+    obj.updateMatrixWorld(true)
+    const box = new THREE.Box3().setFromObject(obj)
+    const sz = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3())
+    return { obj, scale: size / Math.max(sz.x, sz.z), offset: [-c.x, -box.min.y, -c.z] }
+  }, [scene, size])
+  return (
+    <group scale={model.scale}>
+      <primitive object={model.obj} position={model.offset} />
+    </group>
+  )
+}
+
+// Simple stand-in used only if the real GLB can't be loaded.
+function ProceduralRover() {
+  const wheel = [[-0.9, 0.3, -0.7], [-0.9, 0.3, 0], [-0.9, 0.3, 0.7], [0.9, 0.3, -0.7], [0.9, 0.3, 0], [0.9, 0.3, 0.7]]
+  return (
+    <group>
+      <mesh position={[0, 0.8, 0]} castShadow><boxGeometry args={[1.2, 0.5, 1.6]} /><meshStandardMaterial color="#c9c9c9" metalness={0.5} roughness={0.5} /></mesh>
+      <mesh position={[0, 1.15, 0]} rotation-x={-0.2} castShadow><boxGeometry args={[1.9, 0.05, 1.5]} /><meshStandardMaterial color="#1c2b5e" metalness={0.6} roughness={0.3} /></mesh>
+      <mesh position={[0, 1.5, 0.6]} castShadow><cylinderGeometry args={[0.04, 0.04, 0.9]} /><meshStandardMaterial color="#aaa" /></mesh>
+      {wheel.map((p, i) => <mesh key={i} position={p} rotation-z={Math.PI / 2} castShadow><cylinderGeometry args={[0.3, 0.3, 0.25, 16]} /><meshStandardMaterial color="#333" /></mesh>)}
+    </group>
+  )
+}
+
+export default function OpportunityRover({ position = [0, 0, 0], rotationY = 0, size = 2.6 }) {
+  return (
+    <group position={position} rotation-y={rotationY}>
+      <AssetBoundary fallback={<ProceduralRover />}>
+        <Suspense fallback={null}><RoverModel size={size} /></Suspense>
+      </AssetBoundary>
+    </group>
+  )
+}
+
+useGLTF.preload(ROVER_URL, DRACO)
