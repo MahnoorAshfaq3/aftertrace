@@ -60,7 +60,11 @@ function makeRocks(keySpots, count, seed) {
 let cur = null
 export function setWorld(data) {
   if (cur && cur.id === data.id) return cur
-  const keySpots = [[0, 6], data.rover.pos, ...data.clues.map((c) => c.pos)]
+  const keySpots = [
+    [0, 6], data.rover.pos, ...data.clues.map((c) => c.pos),
+    ...(data.mysteryArtifact ? [data.mysteryArtifact.pos] : []),
+    ...(data.resources || []).map((r) => r.pos),
+  ]
   const moon = data.planet === 'moon'
   const rocks = makeRocks(keySpots, moon ? 170 : 150, moon ? 99 : 1234)
   cur = {
@@ -70,6 +74,8 @@ export function setWorld(data) {
     colliders: [
       { x: data.rover.pos[0], z: data.rover.pos[1], r: data.rover.collider },
       ...data.clues.map((c) => ({ x: c.pos[0], z: c.pos[1], r: 1.1 })),
+      ...(data.mysteryArtifact ? [{ x: data.mysteryArtifact.pos[0], z: data.mysteryArtifact.pos[1], r: data.mysteryArtifact.collider }] : []),
+      ...(data.resources || []).map((r) => ({ x: r.pos[0], z: r.pos[1], r: r.collider })),
       ...rocks.filter((r) => r.s > 1.0).map((r) => ({ x: r.x, z: r.z, r: r.s * 0.85 })),
     ],
   }

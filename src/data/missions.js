@@ -145,6 +145,20 @@ export const APOLLO = {
   briefing: 'Between 1971 and 1972, three Apollo crews drove across the Moon. When they left, they parked their vehicles for good. Your mission is to find a Lunar Roving Vehicle and discover why it was left behind.',
   objectives: ['Locate the Lunar Roving Vehicle', 'Collect all three clues', 'Solve the mystery of why it stayed'],
   rover: { pos: [-10, -24], radius: 5.5, rotationY: 0.4, model: 'lrv', size: 3.2, collider: 1.9 },
+  mysteryArtifact: {
+    id: 'mystery-artifact',
+    name: 'Unidentified Lunar Artifact',
+    pos: [42, -60],
+    radius: 3.4,
+    collider: 1,
+    description: 'You found a strange, unmarked object on the lunar surface. No mission record in this experience identifies it. Its origin is left unexplained for you to consider.',
+    note: 'This is a fictional discovery created for AFTERTRACE, not a historical NASA artifact.',
+  },
+  resources: [
+    { id: 'resource-rock-01', type: 'rock', name: 'Lunar Rock Sample', pos: [55, 18], radius: 3.2, collider: 0.7 },
+    { id: 'resource-regolith-01', type: 'regolith', name: 'Lunar Regolith Sample', pos: [-58, 18], radius: 3.2, collider: 0.7 },
+    { id: 'resource-water-ice-01', type: 'waterIce', name: 'Water Ice Sample', pos: [62, -39], radius: 3.2, collider: 0.7 },
+  ],
   roverFacts: [
     ['Used on', 'Apollo 15, 16 and 17 (1971\u20131972)'], ['Crew', 'Two astronauts'],
     ['Power', 'Electric motors on batteries that could not be recharged'],
