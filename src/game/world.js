@@ -75,7 +75,6 @@ export function setWorld(data) {
       { x: data.rover.pos[0], z: data.rover.pos[1], r: data.rover.collider },
       ...data.clues.map((c) => ({ x: c.pos[0], z: c.pos[1], r: 1.1 })),
       ...(data.mysteryArtifact ? [{ x: data.mysteryArtifact.pos[0], z: data.mysteryArtifact.pos[1], r: data.mysteryArtifact.collider }] : []),
-      ...(data.resources || []).map((r) => ({ x: r.pos[0], z: r.pos[1], r: r.collider })),
       ...rocks.filter((r) => r.s > 1.0).map((r) => ({ x: r.x, z: r.z, r: r.s * 0.85 })),
     ],
   }
