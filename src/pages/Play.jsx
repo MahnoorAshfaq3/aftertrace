@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber'
 import { useProgress as useAssetProgress } from '@react-three/drei'
 import * as THREE from 'three'
 import MissionScene from '../game/components/MissionScene'
-import { Briefing, HUD, BottomBar, Toast, InfoPanel, QuizPanel, CompletePanel, PauseMenu, LoadingOverlay, WebGLFallback } from '../game/components/Overlays'
+import { Briefing, HUD, BottomBar, Toast, InfoPanel, MysteryArtifactPanel, ResourceInventoryPanel, QuizPanel, CompletePanel, PauseMenu, LoadingOverlay, WebGLFallback } from '../game/components/Overlays'
 import { progress, useSave, totals } from '../game/systems/MissionProgress'
 import { sfx, narrate } from '../game/systems/audio'
 import { webglAvailable } from '../game/webgl'
@@ -37,7 +37,7 @@ function PlayInner() {
   const ms = progress.mission(missionId)
   const t = totals(save)
 
-  const [ui, setUi] = useState('briefing') // briefing | play | panel | quiz | complete | pause
+  const [ui, setUi] = useState('briefing') // briefing | play | panel | inventory | quiz | complete | pause
   const [panelId, setPanelId] = useState(null)
   const [pauseTab, setPauseTab] = useState('main')
   const [nearby, setNearby] = useState(null)
@@ -60,8 +60,23 @@ function PlayInner() {
   useEffect(() => { const id = setTimeout(() => setReady(true), 20000); return () => clearTimeout(id) }, [])
 
   const lock = useCallback(() => { const c = wrap.current?.querySelector('canvas'); try { const r = c?.requestPointerLock?.(); r?.catch?.(() => {}) } catch { /* ignore */ } }, [])
-  const unlock = () => { try { document.exitPointerLock?.() } catch { /* ignore */ } }
+  const unlock = useCallback(() => { try { document.exitPointerLock?.() } catch { /* ignore */ } }, [])
   const say = (txt) => { setToast(txt); setTimeout(() => setToast(''), 2600) }
+
+  const openInventory = useCallback(() => {
+    if (!d.resources?.length) return
+    sfx.ui()
+    uiRef.current = 'inventory'
+    unlock()
+    setUi('inventory')
+  }, [d, unlock])
+
+  const closeInventory = useCallback(() => {
+    sfx.ui()
+    uiRef.current = 'play'
+    setUi('play')
+    lock()
+  }, [lock])
 
   const closePanel = useCallback(() => {
     sfx.ui()
@@ -69,19 +84,57 @@ function PlayInner() {
     if (!explore && !freeRef.current && m.rover && m.clues.length >= 3 && !m.quizCorrect) { setUi('quiz') } else { setUi('play'); lock() }
     setPanelId(null)
   }, [missionId, explore, lock])
+const interact = useCallback(() => {
+  const id = nearRef.current
+  if (uiRef.current !== 'play' || !id) return
 
-  const interact = useCallback(() => {
-    const id = nearRef.current
-    if (uiRef.current !== 'play' || !id) return
-    face.current = id === 'rover' ? d.rover.pos : d.clues.find((c) => c.id === id)?.pos || null
-    if (id === 'rover') { progress.discoverRover(missionId); sfx.discover(); say(`${d.artifactName} discovered!`); narrate(`${d.artifactName}. ${d.briefing} ${d.roverFacts?.map(([k, v]) => `${k}: ${v}`).join('. ') || ''}`) }
-    else {
-      const had = progress.mission(missionId).clues.includes(id)
-      progress.collectClue(missionId, id); sfx.clue()
-      if (!had) { say(`Clue collected (${progress.mission(missionId).clues.length}/3)`); const clue = d.clues.find((c) => c.id === id); if (clue) narrate(`${clue.title}. ${clue.text} ${clue.fact || ''}`) }
+  if (id === 'rover') {
+    face.current = d.rover.pos
+    progress.discoverRover(missionId)
+    sfx.discover()
+    say(`${d.artifactName} discovered!`)
+    narrate(
+      `${d.artifactName}. ${d.briefing} ${
+        d.roverFacts?.map(([k, v]) => `${k}: ${v}`).join('. ') || ''
+      }`
+    )
+  } else if (id === d.mysteryArtifact?.id) {
+    face.current = d.mysteryArtifact.pos
+    progress.discoverMysteryArtifact(missionId)
+    sfx.discover()
+    say(`${d.mysteryArtifact.name} discovered!`)
+  } else {
+    const resource = d.resources?.find((item) => item.id === id)
+
+    if (resource) {
+      if (!progress.collectResource(missionId, resource.type, resource.id)) return
+
+      sfx.clue()
+      const count = progress.mission(missionId).resources[resource.type].length
+      say(`${resource.name} collected (${count})`)
+      return
     }
-    uiRef.current = 'panel'; setPanelId(id); setUi('panel'); unlock()
-  }, [missionId, d])
+
+    const clue = d.clues.find((c) => c.id === id)
+    if (!clue) return
+
+    face.current = clue.pos
+
+    const had = progress.mission(missionId).clues.includes(id)
+    progress.collectClue(missionId, id)
+    sfx.clue()
+
+    if (!had) {
+      say(`Clue collected (${progress.mission(missionId).clues.length}/3)`)
+      narrate(`${clue.title}. ${clue.text} ${clue.fact || ''}`)
+    }
+  }
+
+  uiRef.current = 'panel'
+  setPanelId(id)
+  setUi('panel')
+  unlock()
+}, [missionId, d, unlock])
 
   useEffect(() => {
     if (!gl) return
@@ -90,7 +143,8 @@ function PlayInner() {
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && uiRef.current === 'play') e.preventDefault()
       if (e.code === 'KeyE' && !e.repeat) interact()
       if (e.code === 'Escape') {
-        if (uiRef.current === 'panel') closePanel()
+        if (uiRef.current === 'inventory') closeInventory()
+        else if (uiRef.current === 'panel') closePanel()
         else if (uiRef.current === 'play' && !document.pointerLockElement) { setPauseTab('main'); setUi('pause') }
       }
     }
@@ -114,7 +168,7 @@ function PlayInner() {
       document.removeEventListener('pointerlockchange', lockChange); document.removeEventListener('click', canvasClick)
       unlock(); sfx.stopAmbient(); if ('speechSynthesis' in window) window.speechSynthesis.cancel()
     }
-  }, [gl, interact, closePanel, lock])
+  }, [gl, interact, closePanel, closeInventory, lock])
 
   const start = () => { sfx.ui(); sfx.startAmbient(); setUi('play'); lock() }
   const resume = () => { sfx.ui(); setUi('play'); lock() }
@@ -138,11 +192,14 @@ function PlayInner() {
       </CanvasBoundary>
 
       {!ready && <LoadingOverlay progress={loadPct} />}
-      {ready && ui !== 'briefing' && ui !== 'complete' && <HUD d={d} ms={ms} explore={explore} freeRoam={freeRoam} muted={save.settings.muted} onToggleMute={() => { progress.setSetting('muted', !save.settings.muted); sfx.syncMute() }} onPause={() => { uiRef.current = 'pause'; unlock(); setPauseTab('main'); setUi('pause') }} onSettings={() => { uiRef.current = 'pause'; unlock(); setPauseTab('settings'); setUi('pause') }} />}
-      {ready && ui === 'play' && <BottomBar nearby={nearby} locked={locked} label={nearby === 'rover' ? d.artifactName : ''} />}
+      {ready && ui !== 'briefing' && ui !== 'complete' && <HUD d={d} ms={ms} explore={explore} freeRoam={freeRoam} inventory={ms.resources} onInventory={d.resources?.length ? openInventory : undefined} muted={save.settings.muted} onToggleMute={() => { progress.setSetting('muted', !save.settings.muted); sfx.syncMute() }} onPause={() => { uiRef.current = 'pause'; unlock(); setPauseTab('main'); setUi('pause') }} onSettings={() => { uiRef.current = 'pause'; unlock(); setPauseTab('settings'); setUi('pause') }} />}
+      {ready && ui === 'play' && <BottomBar nearby={nearby} locked={locked} label={nearby === 'rover' ? d.artifactName : d.resources?.find((resource) => resource.id === nearby)?.name || ''} />}
       <Toast text={toast} />
       {ready && ui === 'briefing' && <Briefing d={d} onlyExplore={explore} onStart={start} onBack={() => nav('/explore')} />}
-      {ui === 'panel' && <InfoPanel d={d} id={panelId} onClose={closePanel} />}
+      {ui === 'panel' && panelId === d.mysteryArtifact?.id
+        ? <MysteryArtifactPanel artifact={d.mysteryArtifact} onClose={closePanel} />
+        : ui === 'panel' && <InfoPanel d={d} id={panelId} onClose={closePanel} />}
+      {ui === 'inventory' && <ResourceInventoryPanel inventory={ms.resources} onClose={closeInventory} />}
       {ui === 'quiz' && <QuizPanel d={d} onSolved={solved} />}
       {ui === 'complete' && <CompletePanel d={d} ms={ms} points={t.points} onContinue={() => { setFreeRoam(true); setUi('play'); lock() }} onAtlas={() => nav('/explore')} />}
       {ui === 'pause' && <PauseMenu key={pauseTab} tab={pauseTab} muted={save.settings.muted} reduced={save.settings.reducedMotion} onResume={resume} onRestart={restart} onExit={() => nav('/')} />}
