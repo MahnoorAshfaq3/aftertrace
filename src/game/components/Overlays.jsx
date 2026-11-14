@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pause, Settings, Volume2, VolumeX, Play, RotateCcw, Home, Check, Trophy, Star, FileText, ArrowRight, Lightbulb, X } from 'lucide-react'
+import { Pause, Settings, Volume2, VolumeX, Play, RotateCcw, Home, Check, Trophy, Star, FileText, ArrowRight, Lightbulb, Package, X } from 'lucide-react'
 import { progress } from '../systems/MissionProgress'
 import { sfx } from '../systems/audio'
 
@@ -30,7 +30,7 @@ export function Briefing({ d, onStart, onBack, onlyExplore }) {
     <div className="absolute inset-0 z-40 grid place-items-center overflow-y-auto bg-space-950/80 p-4 backdrop-blur-sm">
       <div className="glass fade-up w-full max-w-3xl p-6 sm:p-8">
         <p className="text-mars-400">{onlyExplore ? 'Free Exploration' : `Mission ${String(d.number).padStart(2, '0')}`}</p>
-        <h1 className="font-display text-3xl font-black sm:text-4xl">{onlyExplore ? `Explore the ${d.planet === 'moon' ? 'Moon' : 'Mars'}` : d.shortTitle}</h1>
+        <h1 className="font-display text-3xl font-black sm:text-4xl">{onlyExplore ? `Explore ${d.planet === 'moon' ? 'the Moon' : d.planet === 'deep' ? 'Deep Space' : 'Mars'}` : d.shortTitle}</h1>
         {!onlyExplore && <h2 className="mb-3 font-display text-lg text-amber-400">{d.artifactName}</h2>}
         <p className="mb-5 leading-relaxed text-slate-200">{d.briefing}</p>
         {!onlyExplore && (
@@ -51,7 +51,7 @@ export function Briefing({ d, onStart, onBack, onlyExplore }) {
   )
 }
 
-export function HUD({ d, ms, freeRoam, onPause, onSettings, muted, onToggleMute, explore }) {
+export function HUD({ d, ms, freeRoam, onPause, onSettings, onInventory, inventory, muted, onToggleMute, explore }) {
   const n = ms.clues.length
   const objective = explore ? 'Explore freely. Press E near glowing objects.' : freeRoam ? 'Mission complete. Explore freely.' : !ms.rover ? `Locate the ${d.artifactName}` : n < 3 ? `Find the 3 clues about the ${d.artifactName} (${n}/3)` : 'Decode the final transmission'
   return (
@@ -63,6 +63,7 @@ export function HUD({ d, ms, freeRoam, onPause, onSettings, muted, onToggleMute,
         {!explore && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-glow transition-all" style={{ width: `${((n + (ms.rover ? 1 : 0)) / 4) * 100}%` }} /></div>}
       </div>
       <div className="absolute right-4 top-4 z-20 flex gap-2">
+        {onInventory && <button aria-label="Open resource inventory" className="glass flex h-11 items-center gap-2 px-3" onClick={onInventory}><Package size={18} /><span className="hidden sm:inline">Resources</span><span>{Object.values(inventory || {}).reduce((sum, ids) => sum + ids.length, 0)}</span></button>}
         <button aria-label={muted ? 'Unmute' : 'Mute'} className="glass grid h-11 w-11 place-items-center" onClick={onToggleMute}>{muted ? <VolumeX size={20} /> : <Volume2 size={20} />}</button>
         <button aria-label="Settings" className="glass grid h-11 w-11 place-items-center" onClick={onSettings}><Settings size={20} /></button>
         <button aria-label="Pause" className="glass grid h-11 w-11 place-items-center" onClick={onPause}><Pause size={20} /></button>
@@ -76,7 +77,7 @@ export function BottomBar({ nearby, locked, label }) {
     <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex flex-col items-center gap-3 px-4">
       {nearby && (
         <div className="glass pop flex items-center gap-3 px-5 py-3 text-lg shadow-[0_0_30px_rgba(57,184,255,.4)]">
-          <span className="kbd">E</span> {nearby === 'rover' ? `Inspect the ${label}` : 'Press E to investigate'}
+          <span className="kbd">E</span> {nearby === 'rover' ? `Inspect the ${label}` : label ? `Press E to collect ${label}` : 'Press E to investigate'}
         </div>
       )}
       {!locked && !nearby && <div className="glass px-4 py-2 text-sm text-slate-200">Click the game screen to capture your mouse for camera control</div>}
@@ -111,6 +112,46 @@ export function InfoPanel({ d, id, onClose }) {
           </>
         )}
         <button autoFocus className="btn-primary mt-6" onClick={onClose}>Continue <ArrowRight size={18} /></button>
+      </div>
+    </div>
+  )
+}
+
+export function MysteryArtifactPanel({ artifact, onClose }) {
+  return (
+    <div className="absolute inset-0 z-40 grid place-items-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="mystery-artifact-title">
+      <div className="glass fade-up w-full max-w-2xl p-6">
+        <p className="mb-2 font-display text-xs tracking-widest text-glow">MYSTERY ARTIFACT DISCOVERED</p>
+        <h2 id="mystery-artifact-title" className="mb-4 font-display text-2xl">{artifact.name}</h2>
+        <p className="leading-relaxed text-slate-200">{artifact.description}</p>
+        <p className="mt-4 rounded-lg bg-glow/10 p-3 text-sm text-glow">{artifact.note}</p>
+        <button autoFocus className="btn-primary mt-6" onClick={onClose}>Continue <ArrowRight size={18} /></button>
+      </div>
+    </div>
+  )
+}
+
+export function ResourceInventoryPanel({ inventory, onClose }) {
+  const resources = [
+    ['rock', 'Lunar Rock Samples'],
+    ['regolith', 'Lunar Regolith Samples'],
+    ['waterIce', 'Water Ice Samples'],
+  ]
+
+  return (
+    <div className="absolute inset-0 z-40 grid place-items-center bg-black/65 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="resource-inventory-title">
+      <div className="glass fade-up w-full max-w-lg p-6">
+        <p className="mb-2 font-display text-xs tracking-widest text-glow">RESOURCE COLLECTOR</p>
+        <h2 id="resource-inventory-title" className="mb-5 font-display text-2xl">Resource Inventory</h2>
+        <ul className="space-y-3">
+          {resources.map(([type, label]) => (
+            <li key={type} className="flex items-center justify-between rounded-lg bg-white/5 p-4">
+              <span>{label}</span>
+              <b className="font-display text-xl text-amber-300">{inventory?.[type]?.length || 0}</b>
+            </li>
+          ))}
+        </ul>
+        <button autoFocus className="btn-primary mt-6" onClick={onClose}>Close <X size={18} /></button>
       </div>
     </div>
   )

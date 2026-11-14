@@ -8,7 +8,7 @@ export default function About() {
       <section className="glass p-5"><h2 className="mb-2 font-display text-sm tracking-widest text-glow">NASA SPACE APPS CHALLENGE 2026</h2><p>This project was created for the NASA Space Apps Challenge. It is an independent project and is not affiliated with or endorsed by NASA.</p></section>
       <section className="glass p-5"><h2 className="mb-2 font-display text-sm tracking-widest text-glow">TEAM</h2><ul className="list-disc pl-5">{TEAM.map((t) => <li key={t}>{t}</li>)}</ul></section>
       <section className="glass p-5"><h2 className="mb-2 font-display text-sm tracking-widest text-glow">SOURCES & CREDITS</h2>
-        <ul className="list-disc space-y-1 pl-5"><li>Mission facts: NASA. See the reference links on each <a className="text-glow underline" href="/learn">Learn</a> page.</li><li>3D models (astronaut, Opportunity Rover): add each model's author, source link and license here.</li><li>Sounds are generated in the browser. Terrain is generated procedurally.</li></ul></section>
+        <ul className="list-disc space-y-1 pl-5"><li>Mission facts: NASA. See the reference links on each <a className="text-glow underline" href="/learn">Learn</a> page.</li><li>3D models: astronaut, Opportunity Rover (MER-B), MER (24883), Apollo Lunar Module, NASA LRO Moon globe. Add each model's author, source link and license here before publishing.</li><li>Sounds are generated in the browser. Terrain is generated procedurally.</li></ul></section>
     </div>
   )
 }

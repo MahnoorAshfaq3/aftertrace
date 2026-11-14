@@ -41,6 +41,16 @@ Keep your original GLB untouched.
   To use real models: put the GLB in `public/models/rovers/` or `public/models/lunar-equipment/` and swap it in `MissionScene.jsx` (`Artifact`).
 - Clue props (solar panel, lander, etc.) are also simple shapes in `ClueProps.jsx`.
 
+## Models in public/models (from your Team Asset Library)
+Used in the game:
+- `rovers/opportunity.glb` (Opportunity), `rovers/spirit-mer.glb` (Spirit, 24883_MER_static, ~12 MB)
+- `spacecraft/apollo-lunar-module.glb` (Apollo clue 1)
+- `environment/moon-lro-globe.glb` (3D Moon in the Mission Atlas)
+Stored for future missions, not used yet:
+- `spacecraft/viking-lander.glb`, `spacecraft/ingenuity-helicopter.glb`, `rovers/perseverance.glb`, `astronaut/emu-suit.glb`
+Not copied (large, unused): Curiosity_static.glb, Z2 Spacesuit.glb. They stay in your library zip.
+The "Animations (Idle _ Walking)" astronaut file is identical to the original: it only has walk and run, so no real Idle clip yet.
+
 ## Known limitations
 - Untested in a browser by the author of this phase (no internet/browser in the build sandbox). Expect small fixes.
 - Terrain is procedural. The Moon scene and Missions 02-04 are new and equally untested in a browser.

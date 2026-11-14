@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { heightAt } from '../world'
+import { GLBModel } from './OpportunityRover'
 
 function Place({ x, z, children }) { return <group position={[x, heightAt(x, z), z]}>{children}</group> }
 
@@ -71,12 +72,20 @@ export function BigRockProp({ x, z }) {
     </Place>
   )
 }
+export const LM_URL = '/models/spacecraft/apollo-lunar-module.glb'
 export function LunarModuleProp({ x, z }) {
   return (
     <Place x={x} z={z}>
+      <GLBModel url={LM_URL} size={6.2} fallback={<LunarModuleFallback />} />
+    </Place>
+  )
+}
+function LunarModuleFallback() {
+  return (
+    <group>
       <mesh position-y={1.0} castShadow><boxGeometry args={[2.0, 0.9, 2.0]} /><meshStandardMaterial color="#c9a227" metalness={0.85} roughness={0.3} /></mesh>
       {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => <mesh key={`${a}${b}`} position={[a * 1.3, 0.5, b * 1.3]} rotation={[b * 0.45, 0, -a * 0.45]} castShadow><cylinderGeometry args={[0.05, 0.05, 1.6, 6]} /><meshStandardMaterial color="#bbb" metalness={0.7} /></mesh>)}
-    </Place>
+    </group>
   )
 }
 export function BatteryProp({ x, z }) {

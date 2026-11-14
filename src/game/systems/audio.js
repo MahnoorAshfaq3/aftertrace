@@ -27,6 +27,23 @@ function noiseBuffer(c, secs) {
   return b
 }
 
+// Browser text-to-speech narration: no external audio files or API key required.
+export function narrate(text) {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) return
+  try {
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.94
+    utterance.pitch = 0.92
+    utterance.volume = muted() ? 0 : 0.9
+    const voices = window.speechSynthesis.getVoices()
+    const preferred = voices.find((v) => /^en(-|_)/i.test(v.lang) && /natural|google|microsoft/i.test(v.name))
+      || voices.find((v) => /^en(-|_)/i.test(v.lang))
+    if (preferred) utterance.voice = preferred
+    window.speechSynthesis.speak(utterance)
+  } catch { /* narration is optional; gameplay must continue */ }
+}
+
 export const sfx = {
   ui: () => tone(660, 880, 0.08, 'triangle', 0.1),
   discover: () => { tone(440, 660, 0.25, 'sine', 0.18); tone(660, 990, 0.3, 'sine', 0.14, 0.12) },
@@ -45,8 +62,14 @@ export const sfx = {
     const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain()
     s.buffer = noiseBuffer(c, 4); s.loop = true; f.type = 'lowpass'; f.frequency.value = 220
     g.gain.value = muted() ? 0 : 0.07
-    s.connect(f); f.connect(g); g.connect(master); s.start(); ambient = { s, g }
+    s.connect(f); f.connect(g); g.connect(master); s.start()
+    const padGain = c.createGain(); padGain.gain.value = muted() ? 0 : 0.018; padGain.connect(master)
+    const padA = c.createOscillator(), padB = c.createOscillator()
+    padA.type = 'sine'; padA.frequency.value = 110
+    padB.type = 'triangle'; padB.frequency.value = 164.81
+    padA.connect(padGain); padB.connect(padGain); padA.start(); padB.start()
+    ambient = { s, g, padA, padB, padGain }
   },
-  stopAmbient() { if (ambient) { try { ambient.s.stop() } catch { /* already stopped */ } ambient = null } },
-  syncMute() { if (ambient) ambient.g.gain.value = muted() ? 0 : 0.07 },
+  stopAmbient() { if (ambient) { try { ambient.s.stop(); ambient.padA.stop(); ambient.padB.stop() } catch { /* already stopped */ } ambient = null } },
+  syncMute() { if (ambient) { ambient.g.gain.value = muted() ? 0 : 0.07; ambient.padGain.gain.value = muted() ? 0 : 0.018 } },
 }

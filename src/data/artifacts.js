@@ -1,3 +1,4 @@
+import { MISSIONS, MISSION_DATA } from './missions.js'
 // Learn / Mission Archive. IMPORTANT: double-check every fact and link against NASA before publishing.
 const MER = 'https://science.nasa.gov/mission/mars-exploration-rovers-spirit-and-opportunity/'
 
@@ -36,3 +37,23 @@ export const ARTIFACTS = [
     status: 'Three rovers remain on the lunar surface.', why: 'It proved that people can drive and explore on another world, an idea future Moon missions build on.',
     refs: [['NASA: Lunar Roving Vehicle', 'https://www.nasa.gov/history/']], credits: 'Add model credit when the LRV asset is added.', playable: true },
 ]
+
+
+// Keep the archive in sync with every playable investigation. These entries use
+// the mission briefings and facts bundled with the game; add primary-source links
+// and richer instrument details before public release.
+const CORE_ARCHIVE_IDS = new Set(ARTIFACTS.map((a) => a.id))
+ARTIFACTS.push(...MISSIONS.filter((m) => !CORE_ARCHIVE_IDS.has(m.id)).map((m) => {
+  const d = MISSION_DATA[m.id]
+  return {
+    id: m.id, name: m.artifact, mission: m.title, planet: m.planet === 'deep' ? 'Deep Space' : m.planet === 'moon' ? 'Moon' : 'Mars',
+    launch: m.launched, landing: m.years, purpose: m.blurb,
+    instruments: ['Mission hardware and scientific systems'],
+    discoveries: [m.discovery],
+    timeline: [[m.launched, 'Launch / mission begins'], [m.ended, 'Mission ends']],
+    ending: d.roverFacts.find(([k]) => k === 'Legacy')?.[1] || m.blurb,
+    status: 'Mission concluded; hardware and mission records remain part of the exploration record.',
+    why: m.discovery, refs: [], credits: 'Procedural stand-in or supplied 3D model. Verify and add model attribution before publishing.',
+    playable: true,
+  }
+}))

@@ -6,8 +6,9 @@ import AssetBoundary from './AssetBoundary'
 export const ROVER_URL = '/models/rovers/opportunity.glb'
 const DRACO = '/draco/' // copied here by `npm install` (scripts/copy-draco.mjs)
 
-function RoverModel({ size }) {
-  const { scene } = useGLTF(ROVER_URL, DRACO)
+// Loads any GLB, scales it so its footprint is `size` metres, centres it and puts it on the ground.
+function GLBInner({ url, size }) {
+  const { scene } = useGLTF(url, DRACO)
   const model = useMemo(() => {
     const obj = scene.clone(true)
     obj.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
@@ -23,8 +24,17 @@ function RoverModel({ size }) {
   )
 }
 
+// Safe wrapper: if the file is missing/broken, `fallback` is shown instead of crashing the game.
+export function GLBModel({ url, size = 2.6, fallback = null }) {
+  return (
+    <AssetBoundary fallback={fallback}>
+      <Suspense fallback={null}><GLBInner url={url} size={size} /></Suspense>
+    </AssetBoundary>
+  )
+}
+
 // Simple stand-in used only if the real GLB can't be loaded.
-function ProceduralRover() {
+export function ProceduralRover() {
   const wheel = [[-0.9, 0.3, -0.7], [-0.9, 0.3, 0], [-0.9, 0.3, 0.7], [0.9, 0.3, -0.7], [0.9, 0.3, 0], [0.9, 0.3, 0.7]]
   return (
     <group>
@@ -36,12 +46,10 @@ function ProceduralRover() {
   )
 }
 
-export default function OpportunityRover({ position = [0, 0, 0], rotationY = 0, size = 2.6 }) {
+export default function OpportunityRover({ position = [0, 0, 0], rotationY = 0, size = 2.6, url = ROVER_URL }) {
   return (
     <group position={position} rotation-y={rotationY}>
-      <AssetBoundary fallback={<ProceduralRover />}>
-        <Suspense fallback={null}><RoverModel size={size} /></Suspense>
-      </AssetBoundary>
+      <GLBModel url={url} size={size} fallback={<ProceduralRover />} />
     </group>
   )
 }

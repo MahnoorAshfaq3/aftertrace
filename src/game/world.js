@@ -57,25 +57,72 @@ function makeRocks(keySpots, count, seed) {
   return out
 }
 
+
 let cur = null
+
 export function setWorld(data) {
   if (cur && cur.id === data.id) return cur
-  const keySpots = [[0, 6], data.rover.pos, ...data.clues.map((c) => c.pos)]
+
+  const keySpots = [
+    [0, 6],
+    data.rover.pos,
+    ...data.clues.map((c) => c.pos),
+    ...data.clues
+      .filter((c) => c.propOffset)
+      .map((c) => [
+        c.pos[0] + c.propOffset[0],
+        c.pos[1] + c.propOffset[1],
+      ]),
+    ...(data.mysteryArtifact ? [data.mysteryArtifact.pos] : []),
+    ...(data.resources || []).map((r) => r.pos),
+  ]
+
   const moon = data.planet === 'moon'
   const rocks = makeRocks(keySpots, moon ? 170 : 150, moon ? 99 : 1234)
+
   cur = {
-    id: data.id, planet: data.planet, rocks,
+    id: data.id,
+    planet: data.planet,
+    rocks,
     fn: moon ? moonHeightFor(makeMoonCraters(keySpots)) : marsHeight,
-    gravity: moon ? 4.6 : 9, jump: moon ? 3.8 : 4.2,
+    gravity: moon ? 4.6 : 9,
+    jump: moon ? 3.8 : 4.2,
+
     colliders: [
-      { x: data.rover.pos[0], z: data.rover.pos[1], r: data.rover.collider },
-      ...data.clues.map((c) => ({ x: c.pos[0], z: c.pos[1], r: 1.1 })),
-      ...rocks.filter((r) => r.s > 1.0).map((r) => ({ x: r.x, z: r.z, r: r.s * 0.85 })),
+      {
+        x: data.rover.pos[0],
+        z: data.rover.pos[1],
+        r: data.rover.collider,
+      },
+
+      ...data.clues.map((c) => ({
+        x: c.pos[0] + (c.propOffset?.[0] || 0),
+        z: c.pos[1] + (c.propOffset?.[1] || 0),
+        r: c.collider ?? 1.1,
+      })),
+
+      ...(data.mysteryArtifact
+        ? [{
+            x: data.mysteryArtifact.pos[0],
+            z: data.mysteryArtifact.pos[1],
+            r: data.mysteryArtifact.collider ?? 1.1,
+          }]
+        : []),
+
+      ...rocks
+        .filter((r) => r.s > 1.0)
+        .map((r) => ({
+          x: r.x,
+          z: r.z,
+          r: r.s * 0.85,
+        })),
     ],
   }
+
   return cur
 }
+
 export const getWorld = () => cur
 export const heightAt = (x, z) => cur.fn(x, z)
 
-setWorld(MISSION_DATA.opportunity) // default so the landing page works before any mission is chosen
+setWorld(MISSION_DATA.opportunity)
